@@ -1,7 +1,17 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, jsonify
+from flask_caching import Cache
 from scraper import get_weather
 
 app = Flask(__name__)
+
+# Flask-Cachingの設定
+config = {
+    "DEBUG": True,
+    "CACHE_TYPE": "SimpleCache",  # メモリ上にキャッシュを保存する
+    "CACHE_DEFAULT_TIMEOUT": 300  # デフォルトのキャッシュ有効期間を秒で指定 (300秒 = 5分)
+}
+app.config.from_mapping(config)
+cache = Cache(app)
 
 LOCATIONS = {
     "sapporo": {"name": "札幌", "url": "https://tenki.jp/forecast/1/2/1400/1100/"},
@@ -78,15 +88,23 @@ def index():
 
 # 天気データをJSONで返すAPIルート
 @app.route('/api/weather/<location_key>')
+@cache.cached(timeout=600)  # ★★★ 10分間キャッシュする ★★★
 def get_weather_api(location_key):
     if location_key not in LOCATIONS:
         # 存在しない地域キーが指定されたら404エラーを返す
-        return jsonify({"error": "Location not found"}), 404
+        return jsonify({"error": "地域が見つかりません。"}), 404
 
     location_info = LOCATIONS[location_key]
-    weather_data = get_weather(location_info['url'])
+    result = get_weather(location_info['url'])
 
-    if weather_data and weather_data.get("today"):
+    # 1. scraperからエラーが返ってきたかチェック
+    if "error" in result:
+        return jsonify({"error": result["error"]}), 500
+
+    # 2. 成功した場合の処理 (変数名を weather_data に戻す)
+    weather_data = result
+
+    if weather_data.get("today"):
         # アイコン情報を追加
         weather_data['today']['icons'] = get_icon_filenames(weather_data['today']['weather'])
         if weather_data.get("weekly"):
@@ -98,8 +116,7 @@ def get_weather_api(location_key):
         
         return jsonify(weather_data) # データをJSON形式で返す
     else:
-        # 取得失敗
-        return jsonify({"error": "Failed to retrieve weather data"}), 500
+        return jsonify({"error": "取得したデータ形式が正しくありません。"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

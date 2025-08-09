@@ -53,10 +53,11 @@
         fetch(`/api/weather/${selectedLocation}`)
           .then((response) => {
             if (!response.ok) {
-              // 200番台以外のステータスコードはエラー
-              throw new Error("天気情報の取得に失敗しました。");
+                return response.json().then(errorData => {
+                    throw new Error(errorData.error || 'サーバーでエラーが発生しました。');
+                });
             }
-            return response.json(); // レスポンスをJSONとして解析
+            return response.json();
           })
           .then((data) => {
             // 成功した場合: 受け取ったデータを使ってHTMLを生成
@@ -139,7 +140,7 @@
           })
           .catch((error) => {
             // 失敗した場合: エラーメッセージを表示
-            weatherDisplayArea.innerHTML = `<p style="color: red;">${error.message}</p>`;
+            weatherDisplayArea.innerHTML = `<p class="error-message">${error.message}</p>`;
           });
       });
     </script>

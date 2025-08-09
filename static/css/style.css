@@ -77,3 +77,13 @@ body {
     color: #777;
     margin-top: 20px;
 }
+
+.error-message {
+    color: red;
+    font-weight: bold;
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #ffebee;
+    border: 1px solid red;
+    border-radius: 4px;
+}

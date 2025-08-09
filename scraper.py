@@ -3,11 +3,12 @@ from bs4 import BeautifulSoup
 
 def get_weather(url):
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)
         response.raise_for_status()
+    except requests.exceptions.Timeout:
+        return {"error": "リクエストがタイムアウトしました。tenki.jpが混み合っている可能性があります。"}
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching URL: {e}")
-        return None
+        return {"error": f"サイトへの接続に失敗しました: {e}"}
 
     soup = BeautifulSoup(response.content, 'html.parser')
 
@@ -15,17 +16,20 @@ def get_weather(url):
         # 取得範囲を「今日の天気」全体に絞る
         today_section = soup.select_one("#main-column .today-weather")
         if not today_section:
-            print("Error: Could not find today's weather section.")
-            return None
+            return {"error": "今日の天気のHTML構造が見つかりませんでした。サイトの仕様が変更された可能性があります。"}
 
         weather_el = today_section.select_one(".weather-telop")
         high_temp_el = today_section.select_one("dd.high-temp.temp span.value")
         low_temp_el = today_section.select_one("dd.low-temp.temp span.value")
+
+        # 必要な要素が一つでも見つからない場合はエラー
+        if not all([weather_el, high_temp_el, low_temp_el]):
+            return {"error": "気温・天気情報のHTML要素が見つかりませんでした。サイトの仕様が変更された可能性があります。"}
         
         today_weather_data = {
-            "weather": weather_el.get_text(strip=True) if weather_el else "取得失敗",
-            "high_temp": high_temp_el.get_text(strip=True) if high_temp_el else "取得失敗",
-            "low_temp": low_temp_el.get_text(strip=True) if low_temp_el else "取得失敗",
+            "weather": weather_el.get_text(strip=True),
+            "high_temp": high_temp_el.get_text(strip=True),
+            "low_temp": low_temp_el.get_text(strip=True),
         }
 
         # --- 週間天気予報を取得 ---
@@ -41,9 +45,7 @@ def get_weather(url):
             for i in range(min(len(date_row), len(weather_row), len(temp_row))):
                 date_box = date_row[i].select_one(".date-box")
                 youbi_box = date_row[i].select_one(".youbi-box")
-                
                 weather_p = weather_row[i].find("p")
-                
                 high_temp_p = temp_row[i].select_one(".high-temp")
                 low_temp_p = temp_row[i].select_one(".low-temp")
 
@@ -64,8 +66,7 @@ def get_weather(url):
         }
 
     except Exception as e:
-        print(f"An unexpected error occurred during parsing: {e}")
-        return None
+        return {"error": f"HTMLの解析中に予期せぬエラーが発生しました: {e}"}
 
 # このファイル単体でのテスト実行部分
 if __name__ == '__main__':
