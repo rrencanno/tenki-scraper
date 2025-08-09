@@ -1,0 +1,79 @@
+body {
+    font-family: sans-serif;
+    text-align: center;
+}
+
+.weather-card {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 300px;
+    margin: 20px auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.weather-icon-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.weather-icon {
+    width: 80px;
+    height: auto;
+}
+
+.weather {
+    font-size: 2em;
+    font-weight: bold;
+}
+
+.temp-high {
+    color: red;
+}
+
+.temp-low {
+    color: blue;
+}
+
+.weekly-forecast-table {
+    width: 80%;
+    max-width: 800px;
+    margin: 30px auto;
+    border-collapse: collapse;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.weekly-forecast-table th,
+.weekly-forecast-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+.weekly-forecast-table thead th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+.weekly-forecast-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.weather-icon-small {
+    width: 40px;
+    height: auto;
+    vertical-align: middle;
+}
+
+.controls {
+    margin-bottom: 20px;
+}
+
+.loading {
+    font-style: italic;
+    color: #777;
+    margin-top: 20px;
+}

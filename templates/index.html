@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>今日の天気予報</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+
+  <body>
+    <h1>今日の天気予報</h1>
+
+    <!-- 地域選択プルダウン -->
+    <div class="controls">
+      <select id="location-selector">
+        <option value="">地域を選択してください</option>
+        {% for key, value in locations.items() %}
+        <option value="{{ key }}">{{ value.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- 天気情報を表示するためのコンテナ (最初は空) -->
+    <div id="weather-display-area">
+      <!-- JavaScriptがここに結果を挿入する -->
+    </div>
+
+    <script>
+      // プルダウンメニューの要素を取得
+      const locationSelector = document.getElementById("location-selector");
+      // 天気情報を表示するエリアの要素を取得
+      const weatherDisplayArea = document.getElementById(
+        "weather-display-area"
+      );
+
+      // プルダウンの値が変更されたときにイベントを発火
+      locationSelector.addEventListener("change", function () {
+        const selectedLocation = this.value; // 選択された値 (例: "tokyo")
+
+        if (!selectedLocation) {
+          weatherDisplayArea.innerHTML = ""; // 何も選択されていなければ表示をクリア
+          return;
+        }
+
+        // ローディング表示
+        weatherDisplayArea.innerHTML =
+          '<p class="loading">天気情報を取得中...</p>';
+
+        // fetchを使ってFlaskのAPIにリクエストを送信
+        fetch(`/api/weather/${selectedLocation}`)
+          .then((response) => {
+            if (!response.ok) {
+              // 200番台以外のステータスコードはエラー
+              throw new Error("天気情報の取得に失敗しました。");
+            }
+            return response.json(); // レスポンスをJSONとして解析
+          })
+          .then((data) => {
+            // 成功した場合: 受け取ったデータを使ってHTMLを生成
+            let todayHtml = `
+                                    <div class="weather-card">
+                                        <h2>${
+                                          data.location_name
+                                        }の今日の天気</h2>
+                                        <div class="weather-icon-container">
+                                            ${data.today.icons
+                                              .map(
+                                                (icon) => `
+                                                <img src="/static/images/${icon}" alt="${data.today.weather}" class="weather-icon">
+                                            `
+                                              )
+                                              .join("")}
+                                        </div>
+                                        <p class="weather">${
+                                          data.today.weather
+                                        }</p>
+                                        <p>
+                                            <span class="temp-high">最高: ${
+                                              data.today.high_temp
+                                            }℃</span> /
+                                            <span class="temp-low">最低: ${
+                                              data.today.low_temp
+                                            }℃</span>
+                                        </p>
+                                    </div>
+                                `;
+
+            let weeklyHtml = "";
+            if (data.weekly && data.weekly.length > 0) {
+              weeklyHtml = `
+                                        <h2>週間天気予報</h2>
+                                        <table class="weekly-forecast-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>日付</th>
+                                                    <th>天気</th>
+                                                    <th>最高/最低気温(℃)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${data.weekly
+                                                  .map(
+                                                    (day) => `
+                                                    <tr>
+                                                        <td>${day.date}</td>
+                                                        <td>
+                                                            <div class="weather-icon-container">
+                                                                ${day.icons
+                                                                  .map(
+                                                                    (icon) => `
+                                                                    <img src="/static/images/${icon}" alt="${day.weather}" class="weather-icon-small">
+                                                                `
+                                                                  )
+                                                                  .join("")}
+                                                            </div>
+                                                            ${day.weather}
+                                                        </td>
+                                                        <td>
+                                                            <span class="temp-high">${
+                                                              day.high_temp
+                                                            }</span> /
+                                                            <span class="temp-low">${
+                                                              day.low_temp
+                                                            }</span>
+                                                        </td>
+                                                    </tr>
+                                                `
+                                                  )
+                                                  .join("")}
+                                            </tbody>
+                                        </table>
+                                    `;
+            }
+            // 生成したHTMLで表示エリアを更新
+            weatherDisplayArea.innerHTML = todayHtml + weeklyHtml;
+          })
+          .catch((error) => {
+            // 失敗した場合: エラーメッセージを表示
+            weatherDisplayArea.innerHTML = `<p style="color: red;">${error.message}</p>`;
+          });
+      });
+    </script>
+  </body>
+</html>
